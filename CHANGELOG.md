@@ -1,3 +1,9 @@
+## \[1.0.1] - 2025-12-30
+
+### Changed
+
+Exported id\_pair\_set also for downstream folks who use it.
+
 ## \[1.0.0] - 2025-12-30
 
 Split from id\_pair\_set.
