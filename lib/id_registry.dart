@@ -1,6 +1,8 @@
 /// A library for managing sets of identifier pairs.
 library;
 
+export 'package:id_pair_set/id_pair_set.dart';
+
 export 'src/utils/exceptions.dart';
 export 'src/utils/validators.dart';
 

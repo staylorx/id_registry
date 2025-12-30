@@ -1,6 +1,6 @@
 name: id_registry
 description: A Dart package providing an registry for id_pair_sets.
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/staylorx/id_registry
 issue_tracker: https://github.com/staylorx/id_registry/issues
 documentation: https://github.com/staylorx/id_registry
