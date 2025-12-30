@@ -5,6 +5,7 @@ import '../../domain/repositories/id_storage.dart';
 /// This is the async version of InMemoryIdStorage, wrapping synchronous operations in Futures.
 class InMemoryIdStorage implements IdStorage {
   final Map<String, Set<String>> _data = {};
+  final Map<String, int> _counters = {};
 
   @override
   Future<void> add({required String idType, required String idCode}) async {
@@ -33,5 +34,16 @@ class InMemoryIdStorage implements IdStorage {
   @override
   Future<void> clear() async {
     _data.clear();
+    _counters.clear();
+  }
+
+  @override
+  Future<int> getCounter(String idType) async {
+    return _counters[idType] ?? 0;
+  }
+
+  @override
+  Future<void> setCounter(String idType, int value) async {
+    _counters[idType] = value;
   }
 }

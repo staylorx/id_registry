@@ -17,4 +17,11 @@ abstract class IdStorage {
 
   /// Clears all stored data asynchronously.
   Future<void> clear();
+
+  /// Gets the current counter value for the given idType asynchronously.
+  /// Returns 0 if no counter is set.
+  Future<int> getCounter(String idType);
+
+  /// Sets the counter value for the given idType asynchronously.
+  Future<void> setCounter(String idType, int value);
 }

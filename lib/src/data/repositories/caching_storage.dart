@@ -69,4 +69,14 @@ class CachedIdStorage implements IdStorage {
     // Delegate to underlying storage
     await _storage.clear();
   }
+
+  @override
+  Future<int> getCounter(String idType) async {
+    return await _storage.getCounter(idType);
+  }
+
+  @override
+  Future<void> setCounter(String idType, int value) async {
+    await _storage.setCounter(idType, value);
+  }
 }

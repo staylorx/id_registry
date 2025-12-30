@@ -9,6 +9,7 @@ A Dart package that provides a registry for enforcing global uniqueness of ID pa
 
 - **Global Uniqueness Enforcement**: Enforce uniqueness across multiple `IdPairSet` instances for specified idTypes, throwing exceptions on conflicts.
 - **Validation Support**: Set custom validators for idTypes to ensure data integrity during registration.
+- **ID Generation**: Automatically generate unique IDs using auto-increment integers or UUIDs for registered idTypes.
 - **Pluggable Storage**: Easily swap between in-memory, cached, or persistent storage implementations.
 - **Immutable Operations**: Works seamlessly with immutable `IdPairSet` instances from the id_pair_set package.
 - **Exception Handling**: Provides clear exceptions for duplicate or invalid IDs.
@@ -88,7 +89,22 @@ try {
 }
 ```
 
-See the [clean architecture example](example/clean_architecture_example.dart) for a complete implementation, and the [custom validator example](example/custom_validator_example.dart) for implementing custom validators.
+See the [clean architecture example](example/clean_architecture_example.dart) for a complete implementation, the [custom validator example](example/custom_validator_example.dart) for implementing custom validators, and the [ID generation example](example/id_generation_example.dart) for using auto-increment and UUID generators.
+
+### ID Generation
+
+```dart
+// Register a generator for auto-increment IDs
+registry.registerIdTypeGenerator('local', IdGeneratorType.autoIncrement);
+
+// Generate unique IDs
+final id1 = await registry.generateId('local'); // '1'
+final id2 = await registry.generateId('local'); // '2'
+
+// For UUIDs
+registry.registerIdTypeGenerator('session', IdGeneratorType.uuid);
+final sessionId = await registry.generateId('session'); // e.g., '550e8400-e29b-41d4-a716-446655440000'
+```
 
 ## API Overview
 
@@ -107,6 +123,8 @@ Manages global uniqueness across multiple `IdPairSet` instances for all idTypes.
 - `void clear()`: Clears all registrations.
 - `void setValidator(String idType, bool Function({required String value}) validator)`: Sets a validator function for an idType.
 - `void setValidatorFromIdValidator(String idType, IdValidator validator)`: Sets a validator instance for an idType.
+- `void registerIdTypeGenerator(String idType, IdGeneratorType type)`: Registers a generator type for an idType.
+- `Future<String> generateId(String idType)`: Generates a unique ID for the idType using the registered generator.
 
 ### IdValidator
 
@@ -114,6 +132,14 @@ Abstract base class for custom validators.
 
 **Methods:**
 - `bool validate({required String value})`: Validates the given value.
+
+### IdGeneratorType
+
+Enum for specifying ID generation strategies.
+
+**Values:**
+- `autoIncrement`: Generates auto-incrementing integer IDs starting from 1.
+- `uuid`: Generates UUID v4 strings.
 
 ### Exceptions
 
