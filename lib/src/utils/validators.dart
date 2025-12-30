@@ -16,7 +16,7 @@ class IdValidators {
   /// Validates an ORCID identifier.
   ///
   /// ORCID format: XXXX-XXXX-XXXX-XXXX where X is digit, with checksum.
-  static bool orcid(String value) {
+  static bool orcid({required String value}) {
     final regex = RegExp(r'^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$');
     if (!regex.hasMatch(value)) return false;
 
@@ -39,7 +39,7 @@ class IdValidators {
   /// Validates an ISBN-10 identifier.
   ///
   /// ISBN-10 format: 10 digits, last can be X, with checksum.
-  static bool isbn(String value) {
+  static bool isbn({required String value}) {
     final clean = value.replaceAll('-', '').toUpperCase();
     if (clean.length != 10) return false;
 
@@ -61,7 +61,7 @@ class IdValidators {
   /// Validates an ISBN-13 identifier.
   ///
   /// ISBN-13 format: 13 digits, with checksum.
-  static bool isbn13(String value) {
+  static bool isbn13({required String value}) {
     final clean = value.replaceAll('-', '');
     if (clean.length != 13) return false;
 
@@ -83,17 +83,17 @@ class IdValidators {
 /// Concrete implementation of IdValidator for ORCID identifiers.
 class OrcidIdValidator implements IdValidator {
   @override
-  bool validate({required String value}) => IdValidators.orcid(value);
+  bool validate({required String value}) => IdValidators.orcid(value: value);
 }
 
 /// Concrete implementation of IdValidator for ISBN-10 identifiers.
 class IsbnIdValidator implements IdValidator {
   @override
-  bool validate({required String value}) => IdValidators.isbn(value);
+  bool validate({required String value}) => IdValidators.isbn(value: value);
 }
 
 /// Concrete implementation of IdValidator for ISBN-13 identifiers.
 class Isbn13IdValidator implements IdValidator {
   @override
-  bool validate({required String value}) => IdValidators.isbn13(value);
+  bool validate({required String value}) => IdValidators.isbn13(value: value);
 }

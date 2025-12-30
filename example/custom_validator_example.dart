@@ -34,7 +34,7 @@ class ProductCodeValidator implements IdValidator {
   }
 }
 
-void main() {
+Future<void> main() async {
   final registry = IdRegistry();
 
   // Set up custom validators using the IdValidator interface
@@ -59,7 +59,7 @@ void main() {
 
   // Test valid IDs
   try {
-    registry.register(validIds);
+    await registry.register(idPairSet: validIds);
     print('✓ Valid IDs registered successfully:');
     for (final id in validIds.idPairs) {
       print('  ${id.idType}: ${id.idCode}');
@@ -72,14 +72,14 @@ void main() {
 
   // Test invalid IDs (should fail validation)
   try {
-    registry.register(invalidIds);
+    await registry.register(idPairSet: invalidIds);
     print('✗ Invalid IDs were unexpectedly accepted');
   } catch (e) {
     print('✓ Invalid IDs correctly rejected: $e');
   }
 
   // Clean up
-  registry.clear();
+  await registry.clear();
 }
 
 /// Simple test ID class for demonstration

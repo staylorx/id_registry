@@ -1,5 +1,7 @@
-import 'exceptions.dart';
-import 'validators.dart';
+import 'utils/exceptions.dart';
+import 'utils/validators.dart';
+import 'domain/repositories/id_storage.dart';
+import 'data/repositories/in_memory_id_storage.dart';
 import 'package:id_pair_set/id_pair_set.dart';
 
 /// Registry for managing global uniqueness of all idTypes across multiple IdPairSets.
@@ -8,57 +10,62 @@ import 'package:id_pair_set/id_pair_set.dart';
 /// for all idTypes. It throws DuplicateIdException when attempting to register conflicting
 /// identifiers. If uniqueness is not required for certain idTypes, do not use this registry.
 class IdRegistry {
-  /// Internal registry: idType -> Set of registered idCodes.
-  final Map<String, Set<String>> _registry = {};
+  /// Storage for the registry data.
+  final IdStorage _storage;
 
   /// Validators for each idType.
   final Map<String, bool Function({required String value})> _validators = {};
 
   /// Creates an IdRegistry that enforces uniqueness for all idTypes.
-  IdRegistry();
+  ///
+  /// [storage] allows plugging in different persistence mechanisms.
+  /// Defaults to in-memory storage.
+  IdRegistry({IdStorage? storage}) : _storage = storage ?? InMemoryIdStorage();
 
   /// Registers an IdPairSet, checking for validation and uniqueness violations.
   ///
   /// Throws [ValidationException] if any idCode fails validation for its idType.
   /// Throws [DuplicateIdException] if any idType in the set conflicts
   /// with existing registrations.
-  void register(IdPairSet set) {
-    for (final pair in set.idPairs) {
+  Future<void> register({required IdPairSet idPairSet}) async {
+    for (final pair in idPairSet.idPairs) {
       final idType = pair.idType.toString();
       // Validate if validator is set
       if (_validators[idType] != null &&
           !_validators[idType]!(value: pair.idCode)) {
         throw ValidationException(idType: idType, idCode: pair.idCode);
       }
-      final codes = _registry.putIfAbsent(idType, () => {});
-      if (codes.contains(pair.idCode)) {
+      if (await _storage.contains(idType: idType, idCode: pair.idCode)) {
         throw DuplicateIdException(idType: idType, idCode: pair.idCode);
       }
-      codes.add(pair.idCode);
+      await _storage.add(idType: idType, idCode: pair.idCode);
     }
   }
 
   /// Unregisters an IdPairSet, removing its identifiers from the registry.
-  void unregister(IdPairSet set) {
-    for (final pair in set.idPairs) {
+  Future<void> unregister({required IdPairSet idPairSet}) async {
+    for (final pair in idPairSet.idPairs) {
       final idType = pair.idType.toString();
-      _registry[idType]?.remove(pair.idCode);
+      await _storage.remove(idType: idType, idCode: pair.idCode);
     }
   }
 
   /// Checks if a specific idType and idCode combination is already registered.
-  bool isRegistered({required String idType, required String idCode}) {
-    return _registry[idType]?.contains(idCode) ?? false;
+  Future<bool> isRegistered({
+    required String idType,
+    required String idCode,
+  }) async {
+    return await _storage.contains(idType: idType, idCode: idCode);
   }
 
   /// Returns all registered idCodes for a given idType.
-  Set<String> getRegisteredCodes({required String idType}) {
-    return Set.from(_registry[idType] ?? {});
+  Future<Set<String>> getRegisteredCodes({required String idType}) async {
+    return await _storage.getAll(idType: idType);
   }
 
   /// Clears all registrations (useful for testing or resetting).
-  void clear() {
-    _registry.clear();
+  Future<void> clear() async {
+    await _storage.clear();
     _validators.clear();
   }
 

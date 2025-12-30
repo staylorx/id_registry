@@ -9,6 +9,7 @@ A Dart package that provides a registry for enforcing global uniqueness of ID pa
 
 - **Global Uniqueness Enforcement**: Enforce uniqueness across multiple `IdPairSet` instances for specified idTypes, throwing exceptions on conflicts.
 - **Validation Support**: Set custom validators for idTypes to ensure data integrity during registration.
+- **Pluggable Storage**: Easily swap between in-memory, cached, or persistent storage implementations.
 - **Immutable Operations**: Works seamlessly with immutable `IdPairSet` instances from the id_pair_set package.
 - **Exception Handling**: Provides clear exceptions for duplicate or invalid IDs.
 - **Built on id_pair_set**: Leverages the efficient and feature-rich `IdPairSet` data structure for managing unique ID pairs by type.
@@ -96,7 +97,7 @@ See the [clean architecture example](example/clean_architecture_example.dart) fo
 Manages global uniqueness across multiple `IdPairSet` instances for all idTypes.
 
 **Constructor:**
-- `IdRegistry()`: Creates a registry that enforces uniqueness for all idTypes.
+- `IdRegistry({IdStorage? storage})`: Creates a registry with optional custom storage (defaults to in-memory).
 
 **Methods:**
 - `void register(IdPairSet set)`: Registers a set, throwing `DuplicateIdException` on conflicts or `ValidationException` if validation fails.
@@ -118,6 +119,29 @@ Abstract base class for custom validators.
 
 - `DuplicateIdException`: Thrown when attempting to register a conflicting identifier.
 - `ValidationException`: Thrown when an idCode fails validation.
+
+### Storage Abstractions
+
+The registry supports pluggable storage backends for flexibility in persistence and caching:
+
+- `IdStorage`: Abstract interface defining storage operations (add, remove, contains, getAll, clear).
+- `InMemoryIdStorage`: Default in-memory implementation using a Map.
+- `CachedIdStorage`: Caching wrapper that can wrap any storage backend for improved performance.
+
+**Example with caching:**
+
+```dart
+import 'package:id_registry/id_registry.dart';
+
+// Use cached storage for better performance
+final storage = CachedIdStorage(InMemoryIdStorage());
+final registry = IdRegistry(storage: storage);
+
+// Registry operations work the same way
+registry.register(myIdSet);
+```
+
+This design allows future extensions to database, file-based, or other persistent storage systems.
 
 ## Comparison with id_pair_set
 

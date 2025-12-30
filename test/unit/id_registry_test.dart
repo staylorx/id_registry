@@ -8,7 +8,7 @@ class TestId extends IdPair {
   @override
   final String idCode;
 
-  TestId(this.idType, this.idCode);
+  TestId({required this.idType, required this.idCode});
 
   @override
   List<Object?> get props => [idType, idCode];
@@ -21,7 +21,10 @@ class TestId extends IdPair {
 
   @override
   IdPair copyWith({dynamic idType, String? idCode}) {
-    return TestId(idType as String? ?? this.idType, idCode ?? this.idCode);
+    return TestId(
+      idType: idType as String? ?? this.idType,
+      idCode: idCode ?? this.idCode,
+    );
   }
 }
 
@@ -33,67 +36,105 @@ void main() {
       registry = IdRegistry();
     });
 
-    test('should register unique identifiers successfully', () {
-      final set1 = IdPairSet([TestId('isbn', '123'), TestId('upc', '456')]);
+    test('should register unique identifiers successfully', () async {
+      final set1 = IdPairSet([
+        TestId(idType: 'isbn', idCode: '123'),
+        TestId(idType: 'upc', idCode: '456'),
+      ]);
 
-      final set2 = IdPairSet([TestId('isbn', '789'), TestId('local', 'abc')]);
+      final set2 = IdPairSet([
+        TestId(idType: 'isbn', idCode: '789'),
+        TestId(idType: 'local', idCode: 'abc'),
+      ]);
 
-      expect(() => registry.register(set1), returnsNormally);
-      expect(() => registry.register(set2), returnsNormally);
+      await expectLater(registry.register(idPairSet: set1), completes);
+      await expectLater(registry.register(idPairSet: set2), completes);
 
-      expect(registry.isRegistered(idType: 'isbn', idCode: '123'), isTrue);
-      expect(registry.isRegistered(idType: 'isbn', idCode: '789'), isTrue);
-      expect(registry.isRegistered(idType: 'local', idCode: 'abc'), isTrue);
-      expect(registry.isRegistered(idType: 'upc', idCode: '456'), isTrue);
+      expect(
+        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        isTrue,
+      );
+      expect(
+        await registry.isRegistered(idType: 'isbn', idCode: '789'),
+        isTrue,
+      );
+      expect(
+        await registry.isRegistered(idType: 'local', idCode: 'abc'),
+        isTrue,
+      );
+      expect(await registry.isRegistered(idType: 'upc', idCode: '456'), isTrue);
     });
 
     test(
       'should throw DuplicateIdException for duplicate unique identifiers',
-      () {
-        final set1 = IdPairSet([TestId('isbn', '123')]);
-        final set2 = IdPairSet([TestId('isbn', '123')]); // duplicate
+      () async {
+        final set1 = IdPairSet([TestId(idType: 'isbn', idCode: '123')]);
+        final set2 = IdPairSet([
+          TestId(idType: 'isbn', idCode: '123'),
+        ]); // duplicate
 
-        registry.register(set1);
+        await registry.register(idPairSet: set1);
         expect(
-          () => registry.register(set2),
+          () async => await registry.register(idPairSet: set2),
           throwsA(isA<DuplicateIdException>()),
         );
       },
     );
 
-    test('should unregister identifiers', () {
-      final set = IdPairSet([TestId('isbn', '123'), TestId('local', 'abc')]);
+    test('should unregister identifiers', () async {
+      final set = IdPairSet([
+        TestId(idType: 'isbn', idCode: '123'),
+        TestId(idType: 'local', idCode: 'abc'),
+      ]);
 
-      registry.register(set);
-      expect(registry.isRegistered(idType: 'isbn', idCode: '123'), isTrue);
-      expect(registry.isRegistered(idType: 'local', idCode: 'abc'), isTrue);
+      await registry.register(idPairSet: set);
+      expect(
+        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        isTrue,
+      );
+      expect(
+        await registry.isRegistered(idType: 'local', idCode: 'abc'),
+        isTrue,
+      );
 
-      registry.unregister(set);
-      expect(registry.isRegistered(idType: 'isbn', idCode: '123'), isFalse);
-      expect(registry.isRegistered(idType: 'local', idCode: 'abc'), isFalse);
+      await registry.unregister(idPairSet: set);
+      expect(
+        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        isFalse,
+      );
+      expect(
+        await registry.isRegistered(idType: 'local', idCode: 'abc'),
+        isFalse,
+      );
     });
 
-    test('should return registered codes for type', () {
-      final set1 = IdPairSet([TestId('isbn', '123')]);
-      final set2 = IdPairSet([TestId('isbn', '456')]);
+    test('should return registered codes for type', () async {
+      final set1 = IdPairSet([TestId(idType: 'isbn', idCode: '123')]);
+      final set2 = IdPairSet([TestId(idType: 'isbn', idCode: '456')]);
 
-      registry.register(set1);
-      registry.register(set2);
+      await registry.register(idPairSet: set1);
+      await registry.register(idPairSet: set2);
 
       expect(
-        registry.getRegisteredCodes(idType: 'isbn'),
+        await registry.getRegisteredCodes(idType: 'isbn'),
         containsAll(['123', '456']),
       );
-      expect(registry.getRegisteredCodes(idType: 'local'), isEmpty);
+      expect(await registry.getRegisteredCodes(idType: 'local'), isEmpty);
     });
 
-    test('should clear all registrations', () {
-      final set = IdPairSet([TestId('isbn', '123')]);
-      registry.register(set);
-      expect(registry.isRegistered(idType: 'isbn', idCode: '123'), isTrue);
+    test('should clear all registrations', () async {
+      final set = IdPairSet([TestId(idType: 'isbn', idCode: '123')]);
+      await registry.register(idPairSet: set);
+      expect(
+        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        isTrue,
+      );
 
-      registry.clear();
-      expect(registry.isRegistered(idType: 'isbn', idCode: '123'), isFalse);
+      await registry.clear();
+      expect(
+        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        isFalse,
+      );
     });
 
     test('should set and use validators', () {
@@ -102,13 +143,13 @@ void main() {
         ({required String value}) => value.startsWith('9'),
       );
 
-      final validSet = IdPairSet([TestId('isbn', '978-123')]);
+      final validSet = IdPairSet([TestId(idType: 'isbn', idCode: '978-123')]);
       // bad checksum on purpose
-      final invalidSet = IdPairSet([TestId('isbn', '023-456')]);
+      final invalidSet = IdPairSet([TestId(idType: 'isbn', idCode: '023-456')]);
 
-      expect(() => registry.register(validSet), returnsNormally);
+      expect(() => registry.register(idPairSet: validSet), returnsNormally);
       expect(
-        () => registry.register(invalidSet),
+        () => registry.register(idPairSet: invalidSet),
         throwsA(isA<ValidationException>()),
       );
     });
@@ -123,42 +164,48 @@ void main() {
         ({required String value}) => value.length < 5,
       );
 
-      final validSet = IdPairSet([TestId('isbn', '123')]);
-      final invalidSet = IdPairSet([TestId('isbn', '123456')]);
+      final validSet = IdPairSet([TestId(idType: 'isbn', idCode: '123')]);
+      final invalidSet = IdPairSet([TestId(idType: 'isbn', idCode: '123456')]);
 
-      expect(() => registry.register(validSet), returnsNormally);
+      expect(() => registry.register(idPairSet: validSet), returnsNormally);
       expect(
-        () => registry.register(invalidSet),
+        () => registry.register(idPairSet: invalidSet),
         throwsA(isA<ValidationException>()),
       );
     });
 
     test('should not validate if no validator set', () {
-      final set = IdPairSet([TestId('isbn', 'invalid')]);
-      expect(() => registry.register(set), returnsNormally);
+      final set = IdPairSet([TestId(idType: 'isbn', idCode: 'invalid')]);
+      expect(() => registry.register(idPairSet: set), returnsNormally);
     });
   });
 
   group('IdValidators', () {
     test('should validate ORCID', () {
-      expect(IdValidators.orcid('0000-0000-0000-0000'), isTrue);
+      expect(IdValidators.orcid(value: '0000-0000-0000-0000'), isTrue);
       expect(
-        IdValidators.orcid('0000-0000-0000-0001'),
+        IdValidators.orcid(value: '0000-0000-0000-0001'),
         isFalse,
       ); // invalid checksum
-      expect(IdValidators.orcid('invalid'), isFalse);
+      expect(IdValidators.orcid(value: 'invalid'), isFalse);
     });
 
     test('should validate ISBN', () {
-      expect(IdValidators.isbn('0306406152'), isTrue);
-      expect(IdValidators.isbn('0306406153'), isFalse); // invalid checksum
-      expect(IdValidators.isbn('invalid'), isFalse);
+      expect(IdValidators.isbn(value: '0306406152'), isTrue);
+      expect(
+        IdValidators.isbn(value: '0306406153'),
+        isFalse,
+      ); // invalid checksum
+      expect(IdValidators.isbn(value: 'invalid'), isFalse);
     });
 
     test('should validate ISBN13', () {
-      expect(IdValidators.isbn13('9780306406157'), isTrue);
-      expect(IdValidators.isbn13('9780306406158'), isFalse); // invalid checksum
-      expect(IdValidators.isbn13('invalid'), isFalse);
+      expect(IdValidators.isbn13(value: '9780306406157'), isTrue);
+      expect(
+        IdValidators.isbn13(value: '9780306406158'),
+        isFalse,
+      ); // invalid checksum
+      expect(IdValidators.isbn13(value: 'invalid'), isFalse);
     });
   });
 }
