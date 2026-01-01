@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print
 
-import 'package:id_pair_set/id_pair_set.dart';
 import 'package:id_registry/id_registry.dart';
 
 /// Clean Architecture Example: Domain Layer
@@ -125,7 +124,10 @@ void main() async {
   final bookService = BookService(registry, repository);
 
   // Set validator for ISBN using the IdValidator interface
-  registry.setValidatorFromIdValidator('isbn', Isbn13IdValidator());
+  registry.setValidatorFromIdValidator(
+    idType: 'isbn',
+    validator: Isbn13IdValidator(),
+  );
 
   // Create and add books
   final book1 = await bookService.addBook('Clean Code', [

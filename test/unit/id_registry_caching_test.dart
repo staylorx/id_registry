@@ -1,6 +1,5 @@
 import 'package:id_registry/id_registry.dart';
 import 'package:test/test.dart';
-import 'package:id_pair_set/id_pair_set.dart';
 
 class TestId extends IdPair {
   @override
@@ -51,18 +50,29 @@ void main() {
       await expectLater(registry.register(idPairSet: set2), completes);
 
       expect(
-        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'isbn', idCode: '123'),
+        ),
         isTrue,
       );
       expect(
-        await registry.isRegistered(idType: 'isbn', idCode: '789'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'isbn', idCode: '789'),
+        ),
         isTrue,
       );
       expect(
-        await registry.isRegistered(idType: 'local', idCode: 'abc'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'local', idCode: 'abc'),
+        ),
         isTrue,
       );
-      expect(await registry.isRegistered(idType: 'upc', idCode: '456'), isTrue);
+      expect(
+        await registry.isRegistered(
+          idPair: TestId(idType: 'upc', idCode: '456'),
+        ),
+        isTrue,
+      );
     });
 
     test(
@@ -89,21 +99,29 @@ void main() {
 
       await registry.register(idPairSet: set);
       expect(
-        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'isbn', idCode: '123'),
+        ),
         isTrue,
       );
       expect(
-        await registry.isRegistered(idType: 'local', idCode: 'abc'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'local', idCode: 'abc'),
+        ),
         isTrue,
       );
 
       await registry.unregister(idPairSet: set);
       expect(
-        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'isbn', idCode: '123'),
+        ),
         isFalse,
       );
       expect(
-        await registry.isRegistered(idType: 'local', idCode: 'abc'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'local', idCode: 'abc'),
+        ),
         isFalse,
       );
     });
@@ -126,15 +144,35 @@ void main() {
       final set = IdPairSet([TestId(idType: 'isbn', idCode: '123')]);
       await registry.register(idPairSet: set);
       expect(
-        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'isbn', idCode: '123'),
+        ),
         isTrue,
       );
 
       await registry.clear();
       expect(
-        await registry.isRegistered(idType: 'isbn', idCode: '123'),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'isbn', idCode: '123'),
+        ),
         isFalse,
       );
     });
+
+    test(
+      'getAllRegisteredTypes should return types with registered codes',
+      () async {
+        final set = IdPairSet([
+          TestId(idType: 'isbn', idCode: '123'),
+          TestId(idType: 'upc', idCode: '456'),
+        ]);
+
+        await registry.register(idPairSet: set);
+
+        final types = await registry.getAllRegisteredTypes();
+        expect(types, contains('isbn'));
+        expect(types, contains('upc'));
+      },
+    );
   });
 }

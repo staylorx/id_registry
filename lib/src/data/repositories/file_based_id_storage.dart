@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import '../../domain/repositories/id_storage.dart';
+import 'package:id_pair_set/id_pair_set.dart';
 
 /// File-based implementation of AsyncIdStorage that persists data to JSON files asynchronously.
 ///
@@ -17,7 +18,7 @@ class FileBasedIdStorage implements IdStorage {
   /// Creates a file-based async storage with the specified file path.
   ///
   /// Data is loaded lazily on first access to avoid async constructor.
-  FileBasedIdStorage(this.filePath);
+  FileBasedIdStorage({required this.filePath});
 
   /// Loads data from the JSON file into memory asynchronously.
   Future<void> _loadFromFile() async {
@@ -61,32 +62,29 @@ class FileBasedIdStorage implements IdStorage {
   }
 
   @override
-  Future<void> add({required String idType, required String idCode}) async {
+  Future<void> add({required IdPair idPair}) async {
     await _loadFromFile();
     final codes = (_data['ids'] as Map<String, Set<String>>).putIfAbsent(
-      idType,
+      idPair.idType.toString(),
       () => {},
     );
-    codes.add(idCode);
+    codes.add(idPair.idCode);
     await _saveToFile();
   }
 
   @override
-  Future<void> remove({required String idType, required String idCode}) async {
+  Future<void> remove({required IdPair idPair}) async {
     await _loadFromFile();
-    (_data['ids'] as Map<String, Set<String>>)[idType]?.remove(idCode);
+    (_data['ids'] as Map<String, Set<String>>)[idPair.idType.toString()]
+        ?.remove(idPair.idCode);
     await _saveToFile();
   }
 
   @override
-  Future<bool> contains({
-    required String idType,
-    required String idCode,
-  }) async {
+  Future<bool> contains({required IdPair idPair}) async {
     await _loadFromFile();
-    return (_data['ids'] as Map<String, Set<String>>)[idType]?.contains(
-          idCode,
-        ) ??
+    return (_data['ids'] as Map<String, Set<String>>)[idPair.idType.toString()]
+            ?.contains(idPair.idCode) ??
         false;
   }
 
@@ -94,6 +92,12 @@ class FileBasedIdStorage implements IdStorage {
   Future<Set<String>> getAll({required String idType}) async {
     await _loadFromFile();
     return Set.from((_data['ids'] as Map<String, Set<String>>)[idType] ?? {});
+  }
+
+  @override
+  Future<Set<String>> getAllTypes() async {
+    await _loadFromFile();
+    return Set.from((_data['ids'] as Map<String, Set<String>>).keys);
   }
 
   @override
@@ -105,13 +109,13 @@ class FileBasedIdStorage implements IdStorage {
   }
 
   @override
-  Future<int> getCounter(String idType) async {
+  Future<int> getCounter({required String idType}) async {
     await _loadFromFile();
     return (_data['counters'] as Map<String, int>)[idType] ?? 0;
   }
 
   @override
-  Future<void> setCounter(String idType, int value) async {
+  Future<void> setCounter({required String idType, required int value}) async {
     await _loadFromFile();
     (_data['counters'] as Map<String, int>)[idType] = value;
     await _saveToFile();

@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print
 
-import 'package:id_pair_set/id_pair_set.dart';
 import 'package:id_registry/id_registry.dart';
 
 /// Example: Creating and Using Custom Validators
@@ -38,9 +37,18 @@ Future<void> main() async {
   final registry = IdRegistry();
 
   // Set up custom validators using the IdValidator interface
-  registry.setValidatorFromIdValidator('email', EmailValidator());
-  registry.setValidatorFromIdValidator('userId', UserIdValidator());
-  registry.setValidatorFromIdValidator('productCode', ProductCodeValidator());
+  registry.setValidatorFromIdValidator(
+    idType: 'email',
+    validator: EmailValidator(),
+  );
+  registry.setValidatorFromIdValidator(
+    idType: 'userId',
+    validator: UserIdValidator(),
+  );
+  registry.setValidatorFromIdValidator(
+    idType: 'productCode',
+    validator: ProductCodeValidator(),
+  );
 
   // Create some test ID pairs
   final validIds = IdPairSet([

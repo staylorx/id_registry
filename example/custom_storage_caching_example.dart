@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'dart:io';
-import 'package:id_pair_set/id_pair_set.dart';
 import 'package:id_registry/id_registry.dart';
 
 /// Simple implementation of IdPair for demonstration purposes.
@@ -51,11 +50,11 @@ Future<void> main() async {
 
   // Create custom file-based storage
   const dataFile = 'id_registry_data.json';
-  final fileStorage = FileBasedIdStorage(dataFile);
+  final fileStorage = FileBasedIdStorage(filePath: dataFile);
   print('Created file-based storage at: $dataFile');
 
   // Wrap with caching for improved performance
-  final cachedStorage = CachedIdStorage(fileStorage);
+  final cachedStorage = CachedIdStorage(storage: fileStorage);
   print('Wrapped with CachedIdStorage for performance\n');
 
   // Create IdRegistry with cached custom storage
@@ -134,7 +133,7 @@ Future<void> main() async {
   // Simulate restarting the application by creating a new registry instance
   print('Simulating application restart...');
   final newRegistry = IdRegistry(
-    storage: CachedIdStorage(FileBasedIdStorage(dataFile)),
+    storage: CachedIdStorage(storage: FileBasedIdStorage(filePath: dataFile)),
   );
   print('New registry instance created and data loaded from file.');
   final loadedUsers = await newRegistry.getRegisteredCodes(idType: 'user');

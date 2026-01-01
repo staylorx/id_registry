@@ -120,6 +120,7 @@ Manages global uniqueness across multiple `IdPairSet` instances for all idTypes.
 - `void unregister(IdPairSet set)`: Unregisters a set, removing its unique identifiers.
 - `bool isRegistered({required String idType, required String idCode})`: Checks if an idType/idCode combination is registered.
 - `Set<String> getRegisteredCodes({required String idType})`: Returns all registered codes for an idType.
+- `Future<Set<String>> getAllRegisteredTypes()`: Returns all idTypes that are currently registered in the registry, including those with codes, validators, or generators.
 - `void clear()`: Clears all registrations.
 - `void setValidator(String idType, bool Function({required String value}) validator)`: Sets a validator function for an idType.
 - `void setValidatorFromIdValidator(String idType, IdValidator validator)`: Sets a validator instance for an idType.

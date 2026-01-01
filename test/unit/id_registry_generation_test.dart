@@ -1,6 +1,5 @@
 import 'package:id_registry/id_registry.dart';
 import 'package:test/test.dart';
-import 'package:id_pair_set/id_pair_set.dart';
 
 class TestId extends IdPair {
   @override
@@ -37,55 +36,84 @@ void main() {
     });
 
     test('should register generator for idType', () {
-      registry.registerIdTypeGenerator('local', IdGeneratorType.autoIncrement);
+      registry.registerIdTypeGenerator(
+        idType: 'local',
+        type: IdGeneratorType.autoIncrement,
+      );
       // No direct way to check, but generateId should work
     });
 
     test('should generate auto-increment IDs', () async {
-      registry.registerIdTypeGenerator('local', IdGeneratorType.autoIncrement);
+      registry.registerIdTypeGenerator(
+        idType: 'local',
+        type: IdGeneratorType.autoIncrement,
+      );
 
-      final id1 = await registry.generateId('local');
+      final id1 = await registry.generateId(idType: 'local');
       expect(id1, '1');
-      expect(await registry.isRegistered(idType: 'local', idCode: '1'), isTrue);
-
-      final id2 = await registry.generateId('local');
-      expect(id2, '2');
-      expect(await registry.isRegistered(idType: 'local', idCode: '2'), isTrue);
-    });
-
-    test('should generate UUID IDs', () async {
-      registry.registerIdTypeGenerator('uuidType', IdGeneratorType.uuid);
-
-      final id1 = await registry.generateId('uuidType');
-      expect(id1, isNotEmpty);
       expect(
-        await registry.isRegistered(idType: 'uuidType', idCode: id1),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'local', idCode: '1'),
+        ),
         isTrue,
       );
 
-      final id2 = await registry.generateId('uuidType');
+      final id2 = await registry.generateId(idType: 'local');
+      expect(id2, '2');
+      expect(
+        await registry.isRegistered(
+          idPair: TestId(idType: 'local', idCode: '2'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('should generate UUID IDs', () async {
+      registry.registerIdTypeGenerator(
+        idType: 'uuidType',
+        type: IdGeneratorType.uuid,
+      );
+
+      final id1 = await registry.generateId(idType: 'uuidType');
+      expect(id1, isNotEmpty);
+      expect(
+        await registry.isRegistered(
+          idPair: TestId(idType: 'uuidType', idCode: id1),
+        ),
+        isTrue,
+      );
+
+      final id2 = await registry.generateId(idType: 'uuidType');
       expect(id2, isNotEmpty);
       expect(id1 != id2, isTrue); // UUIDs should be unique
       expect(
-        await registry.isRegistered(idType: 'uuidType', idCode: id2),
+        await registry.isRegistered(
+          idPair: TestId(idType: 'uuidType', idCode: id2),
+        ),
         isTrue,
       );
     });
 
     test('should throw exception for unregistered generator', () async {
       expect(
-        () async => await registry.generateId('unknown'),
+        () async => await registry.generateId(idType: 'unknown'),
         throwsA(isA<Exception>()),
       );
     });
 
     test('should maintain separate counters for different idTypes', () async {
-      registry.registerIdTypeGenerator('type1', IdGeneratorType.autoIncrement);
-      registry.registerIdTypeGenerator('type2', IdGeneratorType.autoIncrement);
+      registry.registerIdTypeGenerator(
+        idType: 'type1',
+        type: IdGeneratorType.autoIncrement,
+      );
+      registry.registerIdTypeGenerator(
+        idType: 'type2',
+        type: IdGeneratorType.autoIncrement,
+      );
 
-      final id1 = await registry.generateId('type1');
-      final id2 = await registry.generateId('type2');
-      final id3 = await registry.generateId('type1');
+      final id1 = await registry.generateId(idType: 'type1');
+      final id2 = await registry.generateId(idType: 'type2');
+      final id3 = await registry.generateId(idType: 'type1');
 
       expect(id1, '1');
       expect(id2, '1'); // Separate counter
@@ -95,18 +123,33 @@ void main() {
     test('should persist counters across registry instances', () async {
       // This test assumes in-memory, but for file-based it would persist
       registry.registerIdTypeGenerator(
-        'persistent',
-        IdGeneratorType.autoIncrement,
+        idType: 'persistent',
+        type: IdGeneratorType.autoIncrement,
       );
-      await registry.generateId('persistent'); // 1
+      await registry.generateId(idType: 'persistent'); // 1
 
       final newRegistry = IdRegistry(); // New instance
       newRegistry.registerIdTypeGenerator(
-        'persistent',
-        IdGeneratorType.autoIncrement,
+        idType: 'persistent',
+        type: IdGeneratorType.autoIncrement,
       );
-      final id = await newRegistry.generateId('persistent');
+      final id = await newRegistry.generateId(idType: 'persistent');
       expect(id, '1'); // Should start from 1 since new instance
+    });
+
+    test('getAllRegisteredTypes should return types with generators', () async {
+      registry.registerIdTypeGenerator(
+        idType: 'auto',
+        type: IdGeneratorType.autoIncrement,
+      );
+      registry.registerIdTypeGenerator(
+        idType: 'uuid',
+        type: IdGeneratorType.uuid,
+      );
+
+      final types = await registry.getAllRegisteredTypes();
+      expect(types, contains('auto'));
+      expect(types, contains('uuid'));
     });
   });
 }

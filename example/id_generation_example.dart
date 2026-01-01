@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'package:id_registry/id_registry.dart';
-import 'package:id_pair_set/id_pair_set.dart';
 
 class ExampleId extends IdPair {
   @override
@@ -34,20 +33,26 @@ void main() async {
   final registry = IdRegistry();
 
   // Register generators for different idTypes
-  registry.registerIdTypeGenerator('local', IdGeneratorType.autoIncrement);
-  registry.registerIdTypeGenerator('session', IdGeneratorType.uuid);
+  registry.registerIdTypeGenerator(
+    idType: 'local',
+    type: IdGeneratorType.autoIncrement,
+  );
+  registry.registerIdTypeGenerator(
+    idType: 'session',
+    type: IdGeneratorType.uuid,
+  );
 
   print('=== Auto-Increment ID Generation ===');
   // Generate auto-increment IDs
   for (int i = 0; i < 5; i++) {
-    final id = await registry.generateId('local');
+    final id = await registry.generateId(idType: 'local');
     print('Generated local ID: $id');
   }
 
   print('\n=== UUID ID Generation ===');
   // Generate UUID IDs
   for (int i = 0; i < 3; i++) {
-    final id = await registry.generateId('session');
+    final id = await registry.generateId(idType: 'session');
     print('Generated session ID: $id');
   }
 
@@ -61,7 +66,7 @@ void main() async {
 
   print('\n=== Generated IDs are Automatically Registered ===');
   // Generated IDs are automatically registered, so they enforce uniqueness
-  final anotherLocalId = await registry.generateId('local');
+  final anotherLocalId = await registry.generateId(idType: 'local');
   print('Generated another local ID: $anotherLocalId');
 
   // Try to register a set with a duplicate generated ID (this would fail)
@@ -70,4 +75,9 @@ void main() async {
 
   final allLocalIds = await registry.getRegisteredCodes(idType: 'local');
   print('All registered local IDs: $allLocalIds');
+
+  print('\n=== All Registered Types ===');
+  // Get all idTypes currently in the registry
+  final allTypes = await registry.getAllRegisteredTypes();
+  print('All registered types: $allTypes');
 }

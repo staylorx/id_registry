@@ -1,4 +1,5 @@
 import '../../domain/repositories/id_storage.dart';
+import 'package:id_pair_set/id_pair_set.dart';
 
 /// Decorator class that adds caching to any AsyncIdStorage implementation.
 ///
@@ -11,40 +12,37 @@ class CachedIdStorage implements IdStorage {
   final Map<String, Set<String>> _cache = {};
 
   /// Creates a CachedIdStorage that wraps the given [storage].
-  CachedIdStorage(this._storage);
+  CachedIdStorage({required IdStorage storage}) : _storage = storage;
 
   @override
-  Future<void> add({required String idType, required String idCode}) async {
+  Future<void> add({required IdPair idPair}) async {
     // Update cache
-    final codes = _cache.putIfAbsent(idType, () => {});
-    codes.add(idCode);
+    final codes = _cache.putIfAbsent(idPair.idType.toString(), () => {});
+    codes.add(idPair.idCode);
 
     // Delegate to underlying storage
-    await _storage.add(idType: idType, idCode: idCode);
+    await _storage.add(idPair: idPair);
   }
 
   @override
-  Future<void> remove({required String idType, required String idCode}) async {
+  Future<void> remove({required IdPair idPair}) async {
     // Update cache
-    _cache[idType]?.remove(idCode);
+    _cache[idPair.idType.toString()]?.remove(idPair.idCode);
 
     // Delegate to underlying storage
-    await _storage.remove(idType: idType, idCode: idCode);
+    await _storage.remove(idPair: idPair);
   }
 
   @override
-  Future<bool> contains({
-    required String idType,
-    required String idCode,
-  }) async {
+  Future<bool> contains({required IdPair idPair}) async {
     // Check cache first
-    if (_cache.containsKey(idType)) {
-      return _cache[idType]!.contains(idCode);
+    if (_cache.containsKey(idPair.idType.toString())) {
+      return _cache[idPair.idType.toString()]!.contains(idPair.idCode);
     } else {
       // Fetch from storage and cache
-      final all = await _storage.getAll(idType: idType);
-      _cache[idType] = Set.from(all);
-      return all.contains(idCode);
+      final all = await _storage.getAll(idType: idPair.idType.toString());
+      _cache[idPair.idType.toString()] = Set.from(all);
+      return all.contains(idPair.idCode);
     }
   }
 
@@ -62,6 +60,12 @@ class CachedIdStorage implements IdStorage {
   }
 
   @override
+  Future<Set<String>> getAllTypes() async {
+    // Delegate to underlying storage - no caching for all types
+    return await _storage.getAllTypes();
+  }
+
+  @override
   Future<void> clear() async {
     // Clear cache
     _cache.clear();
@@ -71,12 +75,12 @@ class CachedIdStorage implements IdStorage {
   }
 
   @override
-  Future<int> getCounter(String idType) async {
-    return await _storage.getCounter(idType);
+  Future<int> getCounter({required String idType}) async {
+    return await _storage.getCounter(idType: idType);
   }
 
   @override
-  Future<void> setCounter(String idType, int value) async {
-    await _storage.setCounter(idType, value);
+  Future<void> setCounter({required String idType, required int value}) async {
+    await _storage.setCounter(idType: idType, value: value);
   }
 }

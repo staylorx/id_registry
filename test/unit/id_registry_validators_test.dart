@@ -1,6 +1,5 @@
 import 'package:id_registry/id_registry.dart';
 import 'package:test/test.dart';
-import 'package:id_pair_set/id_pair_set.dart';
 
 class TestId extends IdPair {
   @override
@@ -38,8 +37,8 @@ void main() {
 
     test('should set and use validators', () {
       registry.setValidator(
-        'isbn',
-        ({required String value}) => value.startsWith('9'),
+        idType: 'isbn',
+        validator: ({required String value}) => value.startsWith('9'),
       );
 
       final validSet = IdPairSet([TestId(idType: 'isbn', idCode: '978-123')]);
@@ -55,12 +54,12 @@ void main() {
 
     test('should allow overriding validators', () {
       registry.setValidator(
-        'isbn',
-        ({required String value}) => value.length > 5,
+        idType: 'isbn',
+        validator: ({required String value}) => value.length > 5,
       );
       registry.setValidator(
-        'isbn',
-        ({required String value}) => value.length < 5,
+        idType: 'isbn',
+        validator: ({required String value}) => value.length < 5,
       );
 
       final validSet = IdPairSet([TestId(idType: 'isbn', idCode: '123')]);
@@ -76,6 +75,21 @@ void main() {
     test('should not validate if no validator set', () {
       final set = IdPairSet([TestId(idType: 'isbn', idCode: 'invalid')]);
       expect(() => registry.register(idPairSet: set), returnsNormally);
+    });
+
+    test('getAllRegisteredTypes should return types with validators', () async {
+      registry.setValidator(
+        idType: 'isbn',
+        validator: ({required String value}) => true,
+      );
+      registry.setValidator(
+        idType: 'orcid',
+        validator: ({required String value}) => true,
+      );
+
+      final types = await registry.getAllRegisteredTypes();
+      expect(types, contains('isbn'));
+      expect(types, contains('orcid'));
     });
   });
 
