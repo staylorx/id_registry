@@ -34,7 +34,7 @@ final class IdRegistryRepositoryImpl implements IdRegistryRepository {
 
     // Refuse before writing anything: one refused id stops the registration.
     for (final pair in pairs) {
-      final idType = idTypeKey(pair.idType);
+      final idType = idTypeKey(idType: pair.idType);
       final validator = _validators[idType];
       if (validator != null && !validator.validate(value: pair.idCode)) {
         return Left<IdRegistryFailure, Unit>(
@@ -43,7 +43,7 @@ final class IdRegistryRepositoryImpl implements IdRegistryRepository {
       }
     }
     for (final pair in pairs) {
-      final idType = idTypeKey(pair.idType);
+      final idType = idTypeKey(idType: pair.idType);
       final taken = await _storage.contains(
         idType: idType,
         idCode: pair.idCode,
@@ -60,7 +60,7 @@ final class IdRegistryRepositoryImpl implements IdRegistryRepository {
     // Write pass, with a best-effort undo if storage refuses part way through.
     final written = <(String, String)>[];
     for (final pair in pairs) {
-      final idType = idTypeKey(pair.idType);
+      final idType = idTypeKey(idType: pair.idType);
       final added = await _storage.add(idType: idType, idCode: pair.idCode);
       if (added.isLeft()) {
         await _undo(written);
@@ -77,7 +77,7 @@ final class IdRegistryRepositoryImpl implements IdRegistryRepository {
   }) => _mutex.run(() async {
     for (final pair in idPairSet.pairs) {
       final removed = await _storage.remove(
-        idType: idTypeKey(pair.idType),
+        idType: idTypeKey(idType: pair.idType),
         idCode: pair.idCode,
       );
       if (removed.isLeft()) {
