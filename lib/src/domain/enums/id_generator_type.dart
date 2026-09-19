@@ -1,8 +1,9 @@
-/// Types of ID generators available for idTypes.
+/// The kind of ids a registry mints for an id type.
 enum IdGeneratorType {
-  /// Generates auto-incrementing integer IDs starting from 1.
+  /// Mints `1`, `2`, `3`, … — the next integer not already registered. Only
+  /// correct where one writer owns the namespace.
   autoIncrement,
 
-  /// Generates UUID v4 strings.
+  /// Mints a random UUID v4.
   uuid,
 }

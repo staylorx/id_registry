@@ -120,3 +120,6 @@ app.*.symbols
 
 # vscode noise
 .vscode/
+
+# local development only: points at unpublished sibling packages
+pubspec_overrides.yaml

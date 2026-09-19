@@ -1,195 +1,68 @@
 # id_registry
 
-[![pub package](https://img.shields.io/pub/v/id_registry.svg)](https://pub.dev/packages/id_registry)
-[![License](https://img.shields.io/github/license/staylorx/id_registry)](https://github.com/staylorx/id_registry/blob/main/LICENSE)
+Uniqueness and id generation across many collections of identifiers.
+`id_pair_set` says what ids one thing has; `id_registry` says which ids are
+already taken, in a form every collection you own can check against.
 
-A Dart package that provides a registry for enforcing global uniqueness of ID pairs across multiple IdPairSets. It builds on the [id_pair_set](https://pub.dev/packages/id_pair_set) package to manage sets of unique ID pairs and ensures no duplicates across all registered sets, making it ideal for applications requiring centralized ID management.
+## Why
 
-## Features
+Identifiers only do their job if they are unique across the whole store, not
+just inside one record. An ISBN registered to one book must not be registrable
+to another, and a code minted for a new thing must not collide with one that
+already exists. That is a property of the collection of collections, so it needs
+a home outside any single record — that home is this package.
 
-- **Global Uniqueness Enforcement**: Enforce uniqueness across multiple `IdPairSet` instances for specified idTypes, throwing exceptions on conflicts.
-- **Validation Support**: Set custom validators for idTypes to ensure data integrity during registration.
-- **ID Generation**: Automatically generate unique IDs using auto-increment integers or UUIDs for registered idTypes.
-- **Pluggable Storage**: Easily swap between in-memory, cached, or persistent storage implementations.
-- **Immutable Operations**: Works seamlessly with immutable `IdPairSet` instances from the id_pair_set package.
-- **Exception Handling**: Provides clear exceptions for duplicate or invalid IDs.
-- **Built on id_pair_set**: Leverages the efficient and feature-rich `IdPairSet` data structure for managing unique ID pairs by type.
+## What it does
 
-## Installation
+- **Registers sets**: `register` takes an `IdPairSet` and checks every id
+  against every id registered before. It is **atomic** — every id in the set is
+  validated and checked before any of them is written, and a write that fails
+  part way through is undone — so a refused registration leaves the registry
+  exactly as it was.
+- **Unregisters sets**, freeing the ids for reuse.
+- **Validators**: attach an `IdValidator` (ISBN-10, ISBN-13, ORCID, or your
+  own) to an id type and registration enforces the format.
+- **Generators**: attach `IdGeneratorType.autoIncrement` or `.uuid` to an id
+  type and `generateId` mints a free id and registers it before returning it.
+- **Pluggable storage**: `InMemoryIdStorage`, `FileBasedIdStorage` (one JSON
+  file, written through on every mutation) and `CachedIdStorage` (a decorator
+  over either). All three run the same contract suite, so swapping them changes
+  nothing a caller sees.
 
-Add `id_registry` to your `pubspec.yaml`:
+## Failures are values
 
-```yaml
-dependencies:
-  id_registry: ^1.0.0
-```
+Every method answers with `Either<IdRegistryFailure, …>`: a duplicate, a code
+that fails its validator, a missing generator or an unwritable store comes back
+as a `Left` you can switch on — never as a thrown exception, and never as a
+half-finished operation. `IdRegistryFailure` is a sealed hierarchy, so a switch
+over it is exhaustive.
 
-This will automatically include the `id_pair_set` dependency.
+## Concurrency
 
-Then run:
-
-```bash
-dart pub get
-```
-
-Or if using Flutter:
-
-```bash
-flutter pub get
-```
+Mutating calls — `register`, `unregister`, `generateId`, `clear` — run one at a
+time inside the registry. Check-then-write is not atomic on its own: two
+registrations of the same id would otherwise both pass the check pass, and two
+generation calls would otherwise mint the same integer.
 
 ## Usage
 
-The `id_registry` package is designed to work with `IdPairSet` from the `id_pair_set` package. First, ensure you have `IdPairSet` instances ready. For details on creating and managing `IdPairSet`, see the [id_pair_set documentation](https://pub.dev/packages/id_pair_set).
+`example/main.dart` is the runnable tour (CI runs it on every push), and `test/`
+is the reference for every behaviour above — including the atomicity and
+concurrency guarantees.
 
-### Basic Usage
+Add `id_registry: ^2.0.0` to your pubspec.
 
-```dart
-import 'package:id_registry/id_registry.dart';
-import 'package:id_pair_set/id_pair_set.dart';
+## Upgrading from 1.x
 
-// Assume you have IdPairSet instances (from id_pair_set package)
-final book1Ids = IdPairSet([
-  MyIdPair('isbn', '978-3-16-148410-0'),
-  MyIdPair('upc', '123456789012'),
-]);
+2.0.0 turned thrown exceptions into returned failures: `register`,
+`unregister`, `generateId` and `clear` answer with `Either`, `IdRegistry` became
+`IdRegistryRepositoryImpl`, and `IdStorage` methods now return `Either` too. The
+2.0.0 section of [CHANGELOG.md](CHANGELOG.md) has the full list.
 
-final book2Ids = IdPairSet([
-  MyIdPair('isbn', '978-1-23-456789-0'),
-  MyIdPair('ean', '1234567890123'),
-]);
+## Related
 
-// Create a registry to enforce global uniqueness
-final registry = IdRegistry();
-
-// Register sets (throws DuplicateIdException if conflicts)
-registry.register(book1Ids);
-registry.register(book2Ids); // This would throw if ISBNs conflict
-
-// Check registration
-if (registry.isRegistered(idType: 'isbn', idCode: '978-3-16-148410-0')) {
-  print('ISBN is registered');
-}
-
-// Unregister when needed
-registry.unregister(book1Ids);
-```
-
-### Adding Validation
-
-```dart
-// Set a validator for ISBNs
-registry.setValidator('isbn', (value) => value.startsWith('978'));
-
-// Now registration will validate ISBNs
-try {
-  registry.register(IdPairSet([MyIdPair('isbn', 'invalid')])); // Throws ValidationException
-} catch (e) {
-  print('Validation failed: $e');
-}
-```
-
-See the [clean architecture example](example/clean_architecture_example.dart) for a complete implementation, the [custom validator example](example/custom_validator_example.dart) for implementing custom validators, and the [ID generation example](example/id_generation_example.dart) for using auto-increment and UUID generators.
-
-### ID Generation
-
-```dart
-// Register a generator for auto-increment IDs
-registry.registerIdTypeGenerator('local', IdGeneratorType.autoIncrement);
-
-// Generate unique IDs
-final id1 = await registry.generateId('local'); // '1'
-final id2 = await registry.generateId('local'); // '2'
-
-// For UUIDs
-registry.registerIdTypeGenerator('session', IdGeneratorType.uuid);
-final sessionId = await registry.generateId('session'); // e.g., '550e8400-e29b-41d4-a716-446655440000'
-```
-
-## API Overview
-
-### IdRegistry
-
-Manages global uniqueness across multiple `IdPairSet` instances for all idTypes.
-
-**Constructor:**
-- `IdRegistry({IdStorage? storage})`: Creates a registry with optional custom storage (defaults to in-memory).
-
-**Methods:**
-- `void register(IdPairSet set)`: Registers a set, throwing `DuplicateIdException` on conflicts or `ValidationException` if validation fails.
-- `void unregister(IdPairSet set)`: Unregisters a set, removing its unique identifiers.
-- `bool isRegistered({required String idType, required String idCode})`: Checks if an idType/idCode combination is registered.
-- `Set<String> getRegisteredCodes({required String idType})`: Returns all registered codes for an idType.
-- `Future<Set<String>> getAllRegisteredTypes()`: Returns all idTypes that are currently registered in the registry, including those with codes, validators, or generators.
-- `void clear()`: Clears all registrations.
-- `void setValidator(String idType, bool Function({required String value}) validator)`: Sets a validator function for an idType.
-- `void setValidatorFromIdValidator(String idType, IdValidator validator)`: Sets a validator instance for an idType.
-- `void registerIdTypeGenerator(String idType, IdGeneratorType type)`: Registers a generator type for an idType.
-- `Future<String> generateId(String idType)`: Generates a unique ID for the idType using the registered generator.
-
-### IdValidator
-
-Abstract base class for custom validators.
-
-**Methods:**
-- `bool validate({required String value})`: Validates the given value.
-
-### IdGeneratorType
-
-Enum for specifying ID generation strategies.
-
-**Values:**
-- `autoIncrement`: Generates auto-incrementing integer IDs starting from 1.
-- `uuid`: Generates UUID v4 strings.
-
-### Exceptions
-
-- `DuplicateIdException`: Thrown when attempting to register a conflicting identifier.
-- `ValidationException`: Thrown when an idCode fails validation.
-
-### Storage Abstractions
-
-The registry supports pluggable storage backends for flexibility in persistence and caching:
-
-- `IdStorage`: Abstract interface defining storage operations (add, remove, contains, getAll, clear).
-- `InMemoryIdStorage`: Default in-memory implementation using a Map.
-- `CachedIdStorage`: Caching wrapper that can wrap any storage backend for improved performance.
-
-**Example with caching:**
-
-```dart
-import 'package:id_registry/id_registry.dart';
-
-// Use cached storage for better performance
-final storage = CachedIdStorage(InMemoryIdStorage());
-final registry = IdRegistry(storage: storage);
-
-// Registry operations work the same way
-registry.register(myIdSet);
-```
-
-This design allows future extensions to database, file-based, or other persistent storage systems.
-
-## Comparison with id_pair_set
-
-While `id_pair_set` provides immutable sets of unique ID pairs with operations like adding, removing, and filtering, `id_registry` extends this by enforcing global uniqueness across multiple sets. Use `id_pair_set` for local ID management and `id_registry` when you need centralized control over uniqueness in a larger system.
-
-## Contributing
-
-Contributions are welcome! Please see the [contributing guide](https://github.com/staylorx/id_registry/blob/main/CONTRIBUTING.md) for details.
-
-## Git Hooks
-
-This project uses [Husky](https://typicode.github.io/husky/) to manage Git hooks. The pre-commit hook automatically formats your Dart code using `dart format .` to ensure consistent code style before each commit.
-
-## Issues and Feedback
-
-If you find a bug or have a feature request, please file an issue on [GitHub](https://github.com/staylorx/id_registry/issues).
-
-## Changelog
-
-See the [CHANGELOG.md](https://github.com/staylorx/id_registry/blob/main/CHANGELOG.md) for recent changes.
+`id_pair_set` — the identifiers this registry makes unique.
 
 ## License
 
-This package is licensed under the MIT License. See [LICENSE](https://github.com/staylorx/id_registry/blob/main/LICENSE) for details.
+MIT. See [LICENSE](LICENSE).

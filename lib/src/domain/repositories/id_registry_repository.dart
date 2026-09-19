@@ -1,65 +1,65 @@
-import '../../utils/exceptions.dart';
-import '../../utils/validators.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:id_pair_set/id_pair_set.dart';
 
 import '../enums/id_generator_type.dart';
+import '../failures/id_registry_failure.dart';
+import '../validators/id_validator.dart';
 
-/// Repository interface for managing global uniqueness of all idTypes across multiple IdPairSets.
-abstract class IdRegistryRepository {
-  /// Registers an IdPairSet, checking for validation and uniqueness violations.
+/// Uniqueness, validation and generation for ids across many collections.
+///
+/// A registry is what turns "this book has these ids" into "no other book may
+/// use them": every id is checked against every registered set, optional
+/// validators police formats, and optional generators mint fresh ids. Methods
+/// answer with `Either` — a refusal is a value, not an exception.
+abstract interface class IdRegistryRepository {
+  /// Registers every id in [idPairSet] — all of them, or none.
   ///
-  /// Throws [ValidationException] if any idCode fails validation for its idType.
-  /// Throws [DuplicateIdException] if any idType in the set conflicts
-  /// with existing registrations.
-  Future<void> register({required IdPairSet idPairSet});
-
-  /// Unregisters an IdPairSet, removing its identifiers from the registry.
-  Future<void> unregister({required IdPairSet idPairSet});
-
-  /// Checks if a specific idType and idCode combination is already registered.
-  Future<bool> isRegistered({required IdPair idPair});
-
-  /// Returns all registered idCodes for a given idType.
-  Future<Set<String>> getRegisteredCodes({required String idType});
-
-  /// Returns all idTypes that are currently registered in the registry.
-  ///
-  /// This includes idTypes that have registered codes, validators, or generators.
-  Future<Set<String>> getAllRegisteredTypes();
-
-  /// Clears all registrations (useful for testing or resetting).
-  Future<void> clear();
-
-  /// Sets a validator function for a given idType.
-  ///
-  /// The validator function should return true if the idCode is valid, false otherwise.
-  /// If a validator is set, it will be called during registration to validate idCodes.
-  void setValidator({
-    required String idType,
-    required bool Function({required String value}) validator,
+  /// Refuses with `DuplicateIdFailure` if a type/code pair is already
+  /// registered, or `InvalidIdFailure` if a type has a validator that rejects
+  /// the code. Nothing is written unless every id passes.
+  Future<Either<IdRegistryFailure, Unit>> register({
+    required IdPairSet<IdPair<Object>> idPairSet,
   });
 
-  /// Sets a validator instance for a given idType.
-  ///
-  /// The validator should return true if the idCode is valid, false otherwise.
-  /// If a validator is set, it will be called during registration to validate idCodes.
-  void setValidatorFromIdValidator({
+  /// Unregisters every id in [idPairSet], freeing them for reuse.
+  Future<Either<IdRegistryFailure, Unit>> unregister({
+    required IdPairSet<IdPair<Object>> idPairSet,
+  });
+
+  /// Whether [idType]`:`[idCode] is already registered.
+  Future<Either<IdRegistryFailure, bool>> isRegistered({
+    required String idType,
+    required String idCode,
+  });
+
+  /// Every registered code for [idType].
+  Future<Either<IdRegistryFailure, Set<String>>> codesFor({
+    required String idType,
+  });
+
+  /// Every id type the registry knows: registered codes, validators or
+  /// generators.
+  Future<Either<IdRegistryFailure, Set<String>>> idTypes();
+
+  /// Sets the validator applied to [idType] whenever it is registered.
+  void registerValidator({
     required String idType,
     required IdValidator validator,
   });
 
-  /// Registers a generator type for a given idType.
-  ///
-  /// This allows automatic generation of unique IDs for the idType using either
-  /// auto-incrementing integers or UUIDs.
-  void registerIdTypeGenerator({
+  /// Sets the generator [generateId] uses for [idType].
+  void registerGenerator({
     required String idType,
-    required IdGeneratorType type,
+    required IdGeneratorType generator,
   });
 
-  /// Generates a unique ID for the given idType using the registered generator.
+  /// Mints a free id for [idType] and registers it before returning it.
   ///
-  /// Throws an exception if no generator is registered for the idType.
-  /// The generated ID is automatically registered and guaranteed to be unique.
-  Future<String> generateId({required String idType});
+  /// Refuses with `MissingGeneratorFailure` when [idType] has no generator.
+  Future<Either<IdRegistryFailure, String>> generateId({
+    required String idType,
+  });
+
+  /// Drops every registration, validator, generator and counter.
+  Future<Either<IdRegistryFailure, Unit>> clear();
 }
