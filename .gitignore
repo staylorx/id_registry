@@ -121,5 +121,8 @@ app.*.symbols
 # vscode noise
 .vscode/
 
+# melos bootstrap IntelliJ module files
+*.iml
+
 # local development only: points at unpublished sibling packages
 pubspec_overrides.yaml

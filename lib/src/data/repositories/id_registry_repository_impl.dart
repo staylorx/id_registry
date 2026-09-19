@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:fpdart/fpdart.dart';
 import 'package:id_pair_set/id_pair_set.dart';
 import 'package:uuid/uuid.dart';
@@ -11,6 +9,7 @@ import '../../domain/failures/id_storage_failure.dart';
 import '../../domain/repositories/id_registry_repository.dart';
 import '../../domain/validators/id_validator.dart';
 import '../datasources/in_memory_id_storage.dart';
+import '../mutex.dart';
 
 /// An [IdRegistryRepository] over any [IdStorage].
 ///
@@ -25,7 +24,7 @@ final class IdRegistryRepositoryImpl implements IdRegistryRepository {
   final IdStorage _storage;
   final Map<String, IdValidator> _validators = {};
   final Map<String, IdGeneratorType> _generators = {};
-  final _Mutex _mutex = _Mutex();
+  final Mutex _mutex = Mutex();
 
   @override
   Future<Either<IdRegistryFailure, Unit>> register({
@@ -245,26 +244,4 @@ final class IdRegistryRepositoryImpl implements IdRegistryRepository {
   /// Maps a datasource failure, however it arrives, onto a registry failure.
   static IdRegistryFailure _toRegistryFailure(IdStorageFailure failure) =>
       RegistryStorageFailure(failure.message);
-}
-
-/// Serialises a registry's mutating calls.
-///
-/// Without it, two registrations of the same id would both pass the check pass
-/// and then both write, and two generation calls would mint the same integer:
-/// check-then-write is not atomic on its own.
-final class _Mutex {
-  Future<void> _tail = Future<void>.value();
-
-  /// Runs [action] once everything queued before it has finished.
-  Future<T> run<T>(Future<T> Function() action) async {
-    final prior = _tail;
-    final completer = Completer<void>();
-    _tail = completer.future;
-    await prior;
-    try {
-      return await action();
-    } finally {
-      completer.complete();
-    }
-  }
 }

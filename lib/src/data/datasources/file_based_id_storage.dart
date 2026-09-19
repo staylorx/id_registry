@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../domain/datasources/id_storage.dart';
 import '../../domain/failures/id_storage_failure.dart';
+import 'file_state.dart';
 
 /// An [IdStorage] persisted as one JSON file, loaded on first use.
 ///
@@ -18,7 +19,7 @@ final class FileBasedIdStorage implements IdStorage {
   /// The file holding the JSON state.
   final File file;
 
-  _FileState? _state;
+  FileState? _state;
 
   @override
   Future<Either<IdStorageFailure, Unit>> add({
@@ -90,14 +91,14 @@ final class FileBasedIdStorage implements IdStorage {
 
   /// Applies [change] to the loaded state and writes the file before success.
   Future<Either<IdStorageFailure, Unit>> _mutate(
-    void Function(_FileState state) change,
+    void Function(FileState state) change,
   ) async {
     final loaded = await _load();
     if (loaded.isLeft()) {
       return Left(_failure(loaded));
     }
 
-    final state = loaded.getOrElse((_) => _FileState.empty());
+    final state = loaded.getOrElse((_) => FileState.empty());
     change(state);
     return _attempt(() async {
       await file.parent.create(recursive: true);
@@ -109,15 +110,15 @@ final class FileBasedIdStorage implements IdStorage {
   }
 
   /// Reads the file once, keeping the result for the life of this store.
-  Future<Either<IdStorageFailure, _FileState>> _load() async {
+  Future<Either<IdStorageFailure, FileState>> _load() async {
     final cached = _state;
     if (cached != null) return Right(cached);
 
     final read = await _attempt(() async {
-      if (!file.existsSync()) return _FileState.empty();
+      if (!file.existsSync()) return FileState.empty();
       final raw = await file.readAsString();
-      if (raw.trim().isEmpty) return _FileState.empty();
-      return _FileState.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      if (raw.trim().isEmpty) return FileState.empty();
+      return FileState.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     });
     return read.map((state) {
       _state = state;
@@ -138,50 +139,4 @@ final class FileBasedIdStorage implements IdStorage {
       either.getLeft().getOrElse(
         () => const StorageUnavailableFailure('storage did not answer'),
       );
-}
-
-/// The persisted shape: codes per id type, plus the generation counters.
-final class _FileState {
-  _FileState({required this.codes, required this.counters});
-
-  factory _FileState.empty() => _FileState(codes: {}, counters: {});
-
-  factory _FileState.fromJson(Map<String, dynamic> json) => _FileState(
-    codes: {
-      for (final entry
-          in (json['codes'] as Map<String, dynamic>? ?? {}).entries)
-        entry.key: {...(entry.value as List<dynamic>).cast<String>()},
-    },
-    counters: {
-      for (final entry
-          in (json['counters'] as Map<String, dynamic>? ?? {}).entries)
-        entry.key: entry.value as int,
-    },
-  );
-
-  final Map<String, Set<String>> codes;
-  final Map<String, int> counters;
-
-  Set<String> codesFor(String idType) =>
-      codes.putIfAbsent(idType, () => <String>{});
-
-  /// The codes held for [idType], without creating a bucket for an absent type.
-  ///
-  /// Reads must not allocate: an empty bucket would make [idTypes] claim a type
-  /// that holds nothing.
-  Set<String> codesOf(String idType) => codes[idType] ?? const <String>{};
-
-  /// Every type actually holding at least one code.
-  Set<String> occupiedTypes() => {
-    for (final entry in codes.entries)
-      if (entry.value.isNotEmpty) entry.key,
-  };
-
-  Map<String, dynamic> toJson() => {
-    'codes': {
-      for (final entry in codes.entries)
-        entry.key: entry.value.toList()..sort(),
-    },
-    'counters': counters,
-  };
 }
