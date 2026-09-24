@@ -1,3 +1,20 @@
+## Unreleased
+
+### Changed
+- **The local publish override is gone.** `id_pair_set` 2.0.0 is on pub.dev, so
+  `dart pub get` now resolves it hosted and the untracked
+  `pubspec_overrides.yaml` the 2.0.0 notes relied on is neither present nor
+  needed. This closes the "Publish order matters" backlog item, which is marked
+  off with its disposition.
+
+### Added
+- **Windows-lane audit of every gate** (Dart SDK 3.13.1): `dart pub get`,
+  `dart format --output=none --set-exit-if-changed`, `dart analyze
+  --fatal-infos --fatal-warnings`, `dart test` (40 tests), the CI example, and
+  `dart pub publish --dry-run` (0 warnings) all pass. The findings and the
+  deviations from `dart-flutter-bible` flagged for review are recorded in
+  `BACKLOG.md`. No source was changed by this pass.
+
 ## 2.0.0 - 2026-09-19
 
 Rebuilt around the two guarantees a registry exists to provide: a refused
