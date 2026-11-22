@@ -31,7 +31,7 @@ When complete, mark each off and include a sentence as to disposition.
   need a way to expose one. Flagged for review.
 - [ ] **No `AGENTS.md`.** §1/§11 make it the single in-repo place to record this
   repo's deviations; none exists, so the audit trail lives only here.
-- [ ] **No `dart_arch_test` architecture test.** §2/§9 make it CI's hard gate;
+- [ ] **No `dart_arch_test` architecture test.** §2/§9 make it a hard gate;
   nothing checks that `domain/` never imports `data/`. Single-package layout
   makes the split hard to express.
 - [ ] **No write method takes an optional `IUnitOfWork?`.** §5 wants the uniform
