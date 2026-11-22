@@ -46,7 +46,7 @@ generation calls would otherwise mint the same integer.
 
 ## Usage
 
-`example/main.dart` is the runnable tour (CI runs it on every push), and `test/`
+`example/main.dart` is the runnable tour (the gate runs it before every push), and `test/`
 is the reference for every behaviour above — including the atomicity and
 concurrency guarantees.
 
